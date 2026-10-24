@@ -17,6 +17,12 @@ Several agent types work in this repo, so shared agent material lives in `.agent
   places. Copy-pasting and then editing the copy is never acceptable.
 - **No new dependencies unless the user asks for one.** Build on the platform, Next.js, React and
   what `package.json` already has. If a package would clearly help, propose it and wait.
+- **Icons live in `src/components/Icons.tsx`**, one exported component per icon, built on its shared
+  `Icon` wrapper. Take each SVG from its page on https://lucide.dev (e.g. `https://lucide.dev/icons/copy`)
+  and copy only the child elements (`<path>`, `<rect>`, …); never install `lucide-react`. Add an icon
+  only when something uses it.
+- **Database:** Neon Postgres, schema in `db/schema.sql`, connection string in `.env` as `DB_CONN_STR`.
+  Query it only through `src/lib/db.ts` (Neon's HTTP endpoint over `fetch`, no driver).
 
 <!-- BEGIN:nextjs-agent-rules -->
 
