@@ -1,0 +1,12 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -22,7 +22,8 @@
+   and copy only the child elements (`<path>`, `<rect>`, …); never install `lucide-react`. Add an icon
+   only when something uses it.
+ - **Database:** Neon Postgres, schema in `db/schema.sql`, connection string in `.env` as `DB_CONN_STR`.
+-  Query it only through `src/lib/db.ts` (Neon's HTTP endpoint over `fetch`, no driver).
++  App code queries it only through `src/lib/db.ts` (Neon's HTTP endpoint over `fetch`, no driver).
++  `.env` can't be sourced (unquoted `&`); for ad-hoc psql use `psql "$(sed -n 's/^DB_CONN_STR=//p' .env)"`.
+ 
+ <!-- BEGIN:nextjs-agent-rules -->
+ 
