@@ -1,3 +1,14 @@
+# Agent files
+
+Several agent types work in this repo, so shared agent material lives in `.agents/`, not `.claude/`.
+
+- Skills go in `.agents/skills/<name>/`; `.claude/skills` is a symlink to `../.agents/skills`.
+- Put a file in `.claude/` only for a Claude-only feature (`settings.json` hooks and status line).
+  Keep the scripts it runs in `.agents/` and reference them by path; symlink anything else needed.
+- Ending a Claude session detaches a review (`session-review/on-session-end.sh`) that writes
+  `.agents/review/pending/` for minutes. Commit `pending/` only once `pgrep -f session-review/SKILL`
+  finds nothing. Triage the queue with the `pending-review` skill.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
