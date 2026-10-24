@@ -9,6 +9,15 @@ Several agent types work in this repo, so shared agent material lives in `.agent
   `.agents/review/pending/` for minutes. Commit `pending/` only once `pgrep -f session-review/SKILL`
   finds nothing. Triage the queue with the `pending-review` skill.
 
+# Code
+
+- **Strict DRY.** Every piece of knowledge (a value, rule, type, query, style or piece of markup) has
+  one home. Before writing code, search for an existing helper, component, constant or type and
+  reuse or extend it. If the same logic would appear twice, extract it first and call it from both
+  places. Copy-pasting and then editing the copy is never acceptable.
+- **No new dependencies unless the user asks for one.** Build on the platform, Next.js, React and
+  what `package.json` already has. If a package would clearly help, propose it and wait.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
