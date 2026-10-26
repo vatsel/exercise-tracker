@@ -1,14 +1,108 @@
-/* Layout shared by every form: single column, sized for phones first. */
+/* Building blocks shared by every form: cards, fields and full-width card buttons. */
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  gap: var(--space-group);
+}
+
+/* A form whose parts sit straight in the page's column, between other cards. */
+.flow {
+  display: contents;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-group);
+  min-inline-size: 0;
+  padding: var(--space-card-y) var(--space-card-x);
+  border: none;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+/* A card's title on the left and its icon button on the right. */
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-group);
+  color: var(--color-text-strong);
+  font-size: var(--text-subheading);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-label);
+}
+
+/* An input standing in for the card's title takes the space the buttons leave. */
+.cardHeader input {
+  flex: 1;
+}
+
+.discButtons {
+  display: flex;
+  gap: var(--space-row);
+}
+
+/* A label on the left and a small input on the right, as in the date card. */
+.inlineField {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-group);
+}
+
+.inlineField input {
+  padding-block: 1px;
+  text-align: center;
+}
+
+.shortInput {
+  width: 4.5em;
+}
+
+.cardButton {
+  composes: cardHeader;
+  width: 100%;
+  padding: var(--space-card-y) var(--space-card-x);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  text-align: left;
+}
+
+.accent {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* An icon drawn on a filled circle, the app's only kind of icon button. */
+.disc {
+  display: block;
+  flex: none;
+  width: var(--icon-disc);
+  height: var(--icon-disc);
+  border-radius: var(--radius-round);
+  background: var(--color-text);
+  color: var(--color-background);
+  stroke-width: 1;
+}
+
+.accent .disc {
+  background: var(--color-surface);
+  color: var(--color-accent);
+}
+
+.status {
+  padding-inline: var(--space-card-x);
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+}
+
+/* Inside a card, text already sits at the card's padding. */
+.card .status {
+  padding-inline: 0;
 }

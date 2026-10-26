@@ -10,7 +10,6 @@ import { verifyPassword } from "@/lib/password";
 import { startSession } from "@/lib/session";
 import { workoutDate } from "@/lib/workouts";
 import {
-  approximateField,
   bandField,
   bodyWeightField,
   dateField,
@@ -24,6 +23,9 @@ export type ActionState = { message: string | null };
 
 // The workout form also needs to know whether its latest save went through.
 export type SaveState = ActionState & { saved: boolean };
+
+// The new-exercise card closes once its exercise is added.
+export type AddExerciseState = ActionState & { added: boolean };
 
 // Blank fields become null so they are stored as missing rather than empty.
 function textOrNull(formData: FormData, name: string): string | null {
@@ -64,7 +66,6 @@ const workoutSchema = z.object({
           setNumber: z.number(),
           reps: repCount,
           otherSideReps: repCount.nullable(),
-          approximate: z.boolean(),
         }),
       ),
     }),
@@ -84,7 +85,6 @@ function readWorkoutForm(formData: FormData, exerciseIds: number[]) {
           setNumber,
           reps,
           otherSideReps: textOrNull(formData, otherSideRepsField(exerciseId, setNumber)),
-          approximate: formData.has(approximateField(exerciseId, setNumber)),
         });
       }
       setNumber += 1;
@@ -140,14 +140,15 @@ export async function saveWorkout(_previousState: SaveState, formData: FormData)
       params: [workout.date, exercise.id, exercise.band, exercise.note],
     });
 
+    // New sets are never marked approximate; reps_approximate only keeps what older logs recorded.
     for (const set of exercise.sets) {
       queries.push({
-        query: `insert into exercise_set (workout_exercise_id, set_number, reps, other_side_reps, reps_approximate)
-                select we.id, $3, $4, $5, $6
+        query: `insert into exercise_set (workout_exercise_id, set_number, reps, other_side_reps)
+                select we.id, $3, $4, $5
                 from workout_exercise we
                 join workout w on w.id = we.workout_id
                 where w.date = $1 and we.exercise_id = $2`,
-        params: [workout.date, exercise.id, set.setNumber, set.reps, set.otherSideReps, set.approximate],
+        params: [workout.date, exercise.id, set.setNumber, set.reps, set.otherSideReps],
       });
     }
   }
@@ -169,7 +170,10 @@ const newExerciseSchema = z.object({
 
 // Adds an exercise to the end of the routine. A retired exercise with the same name comes back instead,
 // so its past sets line up with the new ones.
-export async function addExercise(_previousState: ActionState, formData: FormData): Promise<ActionState> {
+export async function addExercise(
+  _previousState: AddExerciseState,
+  formData: FormData,
+): Promise<AddExerciseState> {
   const parsed = newExerciseSchema.safeParse({
     name: textOrNull(formData, exerciseNameField),
     setCount: textOrNull(formData, setCountField),
@@ -177,7 +181,7 @@ export async function addExercise(_previousState: ActionState, formData: FormDat
   });
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
-    return { message: `Not added: ${firstIssue.message}` };
+    return { message: `Not added: ${firstIssue.message}`, added: false };
   }
   const exercise = parsed.data;
 
@@ -195,11 +199,11 @@ export async function addExercise(_previousState: ActionState, formData: FormDat
     [exercise.name, exercise.perSide, exercise.setCount],
   );
   if (added.length === 0) {
-    return { message: `${exercise.name} is already in the routine.` };
+    return { message: `${exercise.name} is already in the routine.`, added: false };
   }
 
   refresh();
-  return { message: `Added ${exercise.name}.` };
+  return { message: `Added ${exercise.name}.`, added: true };
 }
 
 // Removes an exercise from the routine. Past logs keep its sets.

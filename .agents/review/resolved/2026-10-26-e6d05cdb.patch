@@ -1,0 +1,23 @@
+--- a/AGENTS.md	2026-10-26 18:48:03
++++ b/AGENTS.md	2026-10-26 18:48:03
+@@ -6,8 +6,8 @@
+ - Put a file in `.claude/` only for a Claude-only feature (`settings.json` hooks and status line).
+   Keep the scripts it runs in `.agents/` and reference them by path; symlink anything else needed.
+ - Ending a Claude session detaches a review (`session-review/on-session-end.sh`) that writes
+-  `.agents/review/pending/` for minutes. Commit `pending/` only once `pgrep -f session-review/SKILL`
+-  finds nothing. Triage the queue with the `pending-review` skill.
++  `.agents/review/pending/` for minutes. Commit `pending/` only once `pgrep -f 'session-review/SKILL.*-repos-exercise-tracker/'`
++  finds nothing (a bare pattern also matches other repos' reviews). Triage the queue with the `pending-review` skill.
+ 
+ # Code
+ 
+@@ -39,7 +39,8 @@
+   In Firefox DevTools, `fill_by_uid` garbles an ISO date in `<input type=date>`, so read `.value` back
+   after filling; `confirm()` auto-cancels before `accept_dialog`, so stub `window.confirm` via `evaluate_script`.
+   Chrome's `resize_page` won't go below 500px wide; for a phone width use `emulate` with
+-  `viewport: "375x812x2,mobile,touch"`.
++  `viewport: "375x812x2,mobile,touch"`. Its `take_screenshot` `filePath` must be inside the repo (a workspace
++  root); `/tmp` is denied, so save in the repo and `mv` it out.
+ - **Scripts:** one-off Node scripts go in `scripts/` as `.mts`, run with `node --no-warnings scripts/<name>.mts`
+   (Node 22 strips types). Import `src/` modules with their `.ts` extension; `tsconfig.json` allows it.
+ 

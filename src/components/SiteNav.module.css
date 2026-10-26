@@ -1,6 +1,10 @@
 .nav {
   display: flex;
   gap: 16px;
-  padding: 16px 16px 0;
-  text-decoration: underline;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  padding: 16px calc(var(--space-gutter) + var(--space-card-x)) 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
 }

@@ -4,7 +4,7 @@ import { LineChart } from "@/components/LineChart";
 import { SiteNav } from "@/components/SiteNav";
 import { getBodyWeightHistory, getExerciseHistories } from "@/lib/progress";
 import { todayDate } from "@/lib/workouts";
-import styles from "./page.module.css";
+import styles from "@/components/Page.module.css";
 
 export default function ProgressPage() {
   return (

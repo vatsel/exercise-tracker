@@ -1,19 +1,40 @@
-/* Layout only, no visual design yet. */
-
-.exercise {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+.dateInput {
+  width: 9em;
 }
 
-.set {
+.sets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-row);
+}
+
+.setRow {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
-  gap: 8px;
+  gap: var(--space-row) 9px;
 }
 
 .setField {
-  width: 6rem;
+  composes: field from "./Form.module.css";
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+}
+
+.setField input {
+  width: 36px;
+  padding-inline: 0;
+  font-size: var(--text-body);
+  text-align: center;
+}
+
+.previousNote {
+  color: var(--color-text-muted);
+  font-size: var(--text-small);
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text);
 }

@@ -1,13 +1,21 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useRef, useState, type ChangeEvent } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { retireExercise, saveWorkout, type SaveState } from "@/app/actions";
 import { AddExerciseForm } from "@/components/AddExerciseForm";
-import { CopyIcon } from "@/components/Icons";
+import { CircleCheckIcon, CirclePlusIcon, CircleXIcon, CopyIcon } from "@/components/Icons";
 import type { ExerciseLog, LoggedSet, WorkoutLog } from "@/lib/workouts";
 import {
-  approximateField,
   bandField,
   bodyWeightField,
   dateField,
@@ -16,6 +24,7 @@ import {
   repsField,
 } from "@/lib/workoutFields";
 import formStyles from "./Form.module.css";
+import pageStyles from "./Page.module.css";
 import styles from "./WorkoutForm.module.css";
 
 type WorkoutFormProps = {
@@ -49,6 +58,8 @@ type WorkoutLogFormProps = WorkoutFormProps & {
 function WorkoutLogForm({ date, savedLog, previous, onNewWorkout }: WorkoutLogFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(saveWorkout, initialState);
+  // The Save button sits below the add-exercise form, outside this one, so it names this form by id.
+  const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -75,6 +86,11 @@ function WorkoutLogForm({ date, savedLog, previous, onNewWorkout }: WorkoutLogFo
       clearTimeout(saveTimer.current);
     }
     saveTimer.current = setTimeout(saveNow, typingPauseMs);
+  }
+
+  function saveOnSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    saveNow();
   }
 
   function saveIfWaiting() {
@@ -119,31 +135,35 @@ function WorkoutLogForm({ date, savedLog, previous, onNewWorkout }: WorkoutLogFo
   }
 
   return (
-    <>
-      <form ref={formRef} className={formStyles.form} onChange={scheduleSave}>
-        <h1>Log for {date}</h1>
-        <label className={formStyles.field}>
-          Date
-          <input type="date" defaultValue={date} required onChange={openDate} />
-        </label>
+    <div className={pageStyles.page}>
+      <form id={formId} ref={formRef} className={formStyles.flow} onChange={scheduleSave} onSubmit={saveOnSubmit}>
+        <h1>Log Workout</h1>
+        <div className={formStyles.card}>
+          <label className={formStyles.inlineField}>
+            Date
+            <input type="date" className={styles.dateInput} defaultValue={date} required onChange={openDate} />
+          </label>
+          <label className={formStyles.inlineField}>
+            Weight (kg)
+            <input
+              type="number"
+              name={bodyWeightField}
+              className={formStyles.shortInput}
+              inputMode="decimal"
+              step="0.1"
+              min="0"
+              defaultValue={startingBodyWeight}
+            />
+          </label>
+        </div>
         {/* Saves go to the date this form was opened for, never to one the picker is still moving to. */}
         <input type="hidden" name={dateField} value={date} />
-        {savedLog === null && previous.date !== null && <p>Filled in from {previous.date}.</p>}
-        {savedLog !== null && <p>Editing the log already saved for this date.</p>}
-        <p>Changes save as you type.</p>
+        {savedLog === null && previous.date !== null && (
+          <p className={formStyles.status}>Filled in from {previous.date}.</p>
+        )}
+        {savedLog !== null && <p className={formStyles.status}>Editing the log already saved for this date.</p>}
 
-        <label className={formStyles.field}>
-          Body weight (kg)
-          <input
-            type="number"
-            name={bodyWeightField}
-            inputMode="decimal"
-            step="0.1"
-            min="0"
-            defaultValue={startingBodyWeight}
-          />
-        </label>
-
+        <h2>Sets</h2>
         {startingLog.exercises.map((exercise, index) => (
           <ExerciseFields
             key={exercise.id}
@@ -154,16 +174,26 @@ function WorkoutLogForm({ date, savedLog, previous, onNewWorkout }: WorkoutLogFo
             onNoteCopied={scheduleSave}
           />
         ))}
-
-        {status !== null && <p role="status">{status}</p>}
-        {state.saved && (
-          <button type="button" onClick={onNewWorkout}>
-            New workout
-          </button>
-        )}
       </form>
+
       <AddExerciseForm />
-    </>
+
+      <button type="submit" form={formId} className={`${formStyles.cardButton} ${formStyles.accent}`}>
+        Save
+        <CircleCheckIcon className={formStyles.disc} />
+      </button>
+      {status !== null && (
+        <p role="status" className={formStyles.status}>
+          {status}
+        </p>
+      )}
+      {state.saved && (
+        <button type="button" className={formStyles.cardButton} onClick={onNewWorkout}>
+          New workout
+          <CirclePlusIcon className={formStyles.disc} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -175,29 +205,42 @@ type ExerciseFieldsProps = {
 };
 
 function ExerciseFields({ exercise, startingNote, previousNote, onNoteCopied }: ExerciseFieldsProps) {
+  const headingId = useId();
+
   // Show the routine's sets, or more if the last session logged extra.
   const rowCount = Math.max(exercise.setCount, exercise.sets.length);
   const setNumbers = Array.from({ length: rowCount }, (_, index) => index + 1);
 
+  // Every set fits on one row, unless each has a left and a right side to log.
+  let setRows = [setNumbers];
+  if (exercise.perSide) {
+    setRows = setNumbers.map((setNumber) => [setNumber]);
+  }
+
   return (
-    <fieldset className={styles.exercise}>
-      <legend>{exercise.name}</legend>
-      <RetireButton exerciseId={exercise.id} exerciseName={exercise.name} />
+    <fieldset className={formStyles.card} aria-labelledby={headingId}>
+      <ExerciseHeader exerciseId={exercise.id} exerciseName={exercise.name} headingId={headingId} />
 
       <label className={formStyles.field}>
         Band
         <input type="text" name={bandField(exercise.id)} defaultValue={exercise.band ?? ""} />
       </label>
 
-      {setNumbers.map((setNumber) => (
-        <SetFields
-          key={setNumber}
-          exerciseId={exercise.id}
-          perSide={exercise.perSide}
-          setNumber={setNumber}
-          previousSet={exercise.sets[setNumber - 1]}
-        />
-      ))}
+      <div className={styles.sets}>
+        {setRows.map((setRow) => (
+          <div key={setRow[0]} className={styles.setRow}>
+            {setRow.map((setNumber) => (
+              <SetFields
+                key={setNumber}
+                exerciseId={exercise.id}
+                perSide={exercise.perSide}
+                setNumber={setNumber}
+                previousSet={exercise.sets[setNumber - 1]}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
 
       <NoteField
         exerciseId={exercise.id}
@@ -209,22 +252,50 @@ function ExerciseFields({ exercise, startingNote, previousNote, onNoteCopied }: 
   );
 }
 
-function RetireButton({ exerciseId, exerciseName }: { exerciseId: number; exerciseName: string }) {
+type ExerciseHeaderProps = {
+  exerciseId: number;
+  exerciseName: string;
+  headingId: string;
+};
+
+// The exercise's name and a delete button, which asks for a confirmation in the header itself.
+function ExerciseHeader({ exerciseId, exerciseName, headingId }: ExerciseHeaderProps) {
+  const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
 
+  // Past logs keep the exercise's sets.
   function retire() {
-    const confirmed = window.confirm(`Delete ${exerciseName} from the routine? Past logs keep its sets.`);
-    if (!confirmed) {
-      return;
-    }
     setPending(true);
     startTransition(() => retireExercise(exerciseId));
   }
 
+  if (!confirming) {
+    return (
+      <div className={formStyles.cardHeader}>
+        <h3 id={headingId}>{exerciseName}</h3>
+        <button type="button" onClick={() => setConfirming(true)} aria-label={`Delete ${exerciseName}`}>
+          <CircleXIcon className={formStyles.disc} />
+        </button>
+      </div>
+    );
+  }
   return (
-    <button type="button" onClick={retire} disabled={pending}>
-      Delete exercise
-    </button>
+    <div className={formStyles.cardHeader}>
+      <h3 id={headingId}>Confirm Deletion</h3>
+      <div className={formStyles.discButtons}>
+        <button type="button" onClick={retire} disabled={pending} aria-label={`Delete ${exerciseName}`}>
+          <CircleCheckIcon className={formStyles.disc} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          disabled={pending}
+          aria-label={`Keep ${exerciseName}`}
+        >
+          <CircleXIcon className={formStyles.disc} />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -238,40 +309,34 @@ type SetFieldsProps = {
 function SetFields({ exerciseId, perSide, setNumber, previousSet }: SetFieldsProps) {
   const reps = previousSet?.reps ?? "";
   const otherSideReps = previousSet?.otherSideReps ?? "";
-  const approximate = previousSet?.approximate ?? false;
 
+  if (!perSide) {
+    return <RepsField label={`Set ${setNumber}`} name={repsField(exerciseId, setNumber)} defaultValue={reps} />;
+  }
   return (
-    <div className={styles.set}>
-      <span>Set {setNumber}</span>
-      <label className={`${formStyles.field} ${styles.setField}`}>
-        Reps
-        <input
-          type="number"
-          name={repsField(exerciseId, setNumber)}
-          inputMode="decimal"
-          step="0.1"
-          min="0"
-          defaultValue={reps}
-        />
-      </label>
-      {perSide && (
-        <label className={`${formStyles.field} ${styles.setField}`}>
-          Other side
-          <input
-            type="number"
-            name={otherSideRepsField(exerciseId, setNumber)}
-            inputMode="decimal"
-            step="0.1"
-            min="0"
-            defaultValue={otherSideReps}
-          />
-        </label>
-      )}
-      <label>
-        <input type="checkbox" name={approximateField(exerciseId, setNumber)} defaultChecked={approximate} />
-        Approx.
-      </label>
-    </div>
+    <>
+      <RepsField label={`Set ${setNumber} L`} name={repsField(exerciseId, setNumber)} defaultValue={reps} />
+      <RepsField
+        label={`Set ${setNumber} R`}
+        name={otherSideRepsField(exerciseId, setNumber)}
+        defaultValue={otherSideReps}
+      />
+    </>
+  );
+}
+
+type RepsFieldProps = {
+  label: string;
+  name: string;
+  defaultValue: number | "";
+};
+
+function RepsField({ label, name, defaultValue }: RepsFieldProps) {
+  return (
+    <label className={styles.setField}>
+      {label}
+      <input type="number" name={name} inputMode="decimal" step="0.1" min="0" defaultValue={defaultValue} />
+    </label>
   );
 }
 
@@ -298,9 +363,9 @@ function NoteField({ exerciseId, startingNote, previousNote, onNoteCopied }: Not
         <textarea name={noteField(exerciseId)} value={note} onChange={(event) => setNote(event.target.value)} />
       </label>
       {previousNote !== null && (
-        <p>
+        <p className={styles.previousNote}>
           Last time: {previousNote}{" "}
-          <button type="button" onClick={() => copyPreviousNote(previousNote)}>
+          <button type="button" className={styles.copyButton} onClick={() => copyPreviousNote(previousNote)}>
             <CopyIcon width={16} height={16} /> Copy
           </button>
         </p>

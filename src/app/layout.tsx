@@ -5,6 +5,8 @@ import "./globals.css";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  // Every face in the app is Inter Regular.
+  weight: "400",
 });
 
 export const metadata: Metadata = {

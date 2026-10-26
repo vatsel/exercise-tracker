@@ -31,6 +31,19 @@ type WorkoutRow = { id: number; date: string; bodyWeight: number | null };
 
 const workoutColumns = `id, date::text as date, body_weight_kg::float8 as "bodyWeight"`;
 
+// Gathers the exercise_set rows aliased `s` into a LoggedSet array, which is empty when there are none.
+const setsColumn = `coalesce(
+         json_agg(
+           json_build_object(
+             'reps', s.reps,
+             'otherSideReps', s.other_side_reps,
+             'approximate', s.reps_approximate
+           )
+           order by s.set_number
+         ) filter (where s.id is not null),
+         '[]'
+       ) as sets`;
+
 // A workout date as YYYY-MM-DD, the form both the date picker and the workout.date column use.
 export const workoutDate = z.iso.date("Invalid date.");
 
@@ -81,17 +94,7 @@ async function getExerciseLogs(workoutId: number | null): Promise<ExerciseLog[]>
        e.set_count as "setCount",
        we.band,
        we.note,
-       coalesce(
-         json_agg(
-           json_build_object(
-             'reps', s.reps,
-             'otherSideReps', s.other_side_reps,
-             'approximate', s.reps_approximate
-           )
-           order by s.set_number
-         ) filter (where s.id is not null),
-         '[]'
-       ) as sets
+       ${setsColumn}
      from exercise e
      left join workout_exercise we on we.exercise_id = e.id and we.workout_id = $1
      left join exercise_set s on s.workout_exercise_id = we.id
@@ -99,5 +102,43 @@ async function getExerciseLogs(workoutId: number | null): Promise<ExerciseLog[]>
      group by e.id, we.id
      order by e.position`,
     [workoutId],
+  );
+}
+
+// Every saved log, newest first. Unlike getWorkoutLog, each lists only the exercises it logged,
+// retired ones included, since it records what was done that day rather than today's routine.
+export async function getAllLogs(): Promise<WorkoutLog[]> {
+  return sql<WorkoutLog>(
+    `select
+       w.date::text as date,
+       w.body_weight_kg::float8 as "bodyWeight",
+       coalesce(
+         json_agg(logged.exercise order by logged.position) filter (where logged.position is not null),
+         '[]'
+       ) as exercises
+     from workout w
+     left join lateral (
+       select
+         e.position,
+         json_build_object(
+           'id', e.id,
+           'name', e.name,
+           'perSide', e.per_side,
+           'setCount', e.set_count,
+           'band', we.band,
+           'note', we.note,
+           'sets', sets
+         ) as exercise
+       from workout_exercise we
+       join exercise e on e.id = we.exercise_id
+       join lateral (
+         select ${setsColumn}
+         from exercise_set s
+         where s.workout_exercise_id = we.id
+       ) logged_sets on true
+       where we.workout_id = w.id
+     ) logged on true
+     group by w.id
+     order by w.date desc`,
   );
 }

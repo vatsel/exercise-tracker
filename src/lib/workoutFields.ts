@@ -19,7 +19,3 @@ export function repsField(exerciseId: number, setNumber: number): string {
 export function otherSideRepsField(exerciseId: number, setNumber: number): string {
   return `otherSideReps-${exerciseId}-${setNumber}`;
 }
-
-export function approximateField(exerciseId: number, setNumber: number): string {
-  return `approximate-${exerciseId}-${setNumber}`;
-}
