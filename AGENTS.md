@@ -22,7 +22,20 @@ Several agent types work in this repo, so shared agent material lives in `.agent
   and copy only the child elements (`<path>`, `<rect>`, …); never install `lucide-react`. Add an icon
   only when something uses it.
 - **Database:** Neon Postgres, schema in `db/schema.sql`, connection string in `.env` as `DB_CONN_STR`.
-  Query it only through `src/lib/db.ts` (Neon's HTTP endpoint over `fetch`, no driver).
+  App code queries it only through `src/lib/db.ts` (Neon's HTTP endpoint over `fetch`, no driver).
+  `.env` can't be sourced (unquoted `&`); for ad-hoc psql use `psql "$(sed -n 's/^DB_CONN_STR=//p' .env)"`.
+- **Dev server:** the user usually keeps `next dev` running, and a second one in this repo exits with
+  "Another next dev server is already running". Use the `appUrl` in `.next/dev/lock` instead.
+- **Request-time values:** `next.config.ts` enables `cacheComponents`, so call `await connection()` before
+  `new Date()` (e.g. `todayDate()`) in a server component; awaiting `searchParams` first doesn't suffice.
+- **Check UI changes in a browser** at that `appUrl` before reporting them done. Every page except
+  `/login` needs a session, and the automation browsers start logged out. If the browser you can
+  reach lands on `/login`, ask the user to log in there; never report the change as unchecked
+  without asking, and never create users or forge a session cookie to get past it.
+  In Firefox DevTools, `fill_by_uid` garbles an ISO date in `<input type=date>`, so read `.value` back
+  after filling; `confirm()` auto-cancels before `accept_dialog`, so stub `window.confirm` via `evaluate_script`.
+- **Scripts:** one-off Node scripts go in `scripts/` as `.mts`, run with `node --no-warnings scripts/<name>.mts`
+  (Node 22 strips types). Import `src/` modules with their `.ts` extension; `tsconfig.json` allows it.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
