@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { sql } from "@/lib/db";
 
 export type LoggedSet = {
@@ -7,8 +8,8 @@ export type LoggedSet = {
   approximate: boolean;
 };
 
-// One exercise from the routine, with what was logged for it in the previous session.
-export type PreviousExercise = {
+// One exercise from the routine, with what one workout logged for it.
+export type ExerciseLog = {
   id: number;
   name: string;
   perSide: boolean;
@@ -18,10 +19,20 @@ export type PreviousExercise = {
   sets: LoggedSet[];
 };
 
-export type PreviousSession = {
+// Every exercise in the current routine as one workout logged it. Exercises it didn't include have no band, note or sets.
+// Retired exercises are left out, though their sets stay in the database.
+export type WorkoutLog = {
   date: string | null;
-  exercises: PreviousExercise[];
+  bodyWeight: number | null;
+  exercises: ExerciseLog[];
 };
+
+type WorkoutRow = { id: number; date: string; bodyWeight: number | null };
+
+const workoutColumns = `id, date::text as date, body_weight_kg::float8 as "bodyWeight"`;
+
+// A workout date as YYYY-MM-DD, the form both the date picker and the workout.date column use.
+export const workoutDate = z.iso.date("Invalid date.");
 
 // Today's date as YYYY-MM-DD in the server's local time zone.
 export function todayDate(): string {
@@ -32,25 +43,37 @@ export function todayDate(): string {
   return `${year}-${month}-${day}`;
 }
 
-export async function workoutExists(date: string): Promise<boolean> {
-  const rows = await sql<{ exists: boolean }>(
-    "select exists (select 1 from workout where date = $1) as exists",
-    [date],
-  );
-  return rows[0].exists;
+// The log saved for `date`, or null when nothing has been saved for it yet.
+export async function getWorkoutLog(date: string): Promise<WorkoutLog | null> {
+  const workouts = await sql<WorkoutRow>(`select ${workoutColumns} from workout where date = $1`, [date]);
+  const workout = workouts[0];
+  if (workout === undefined) {
+    return null;
+  }
+  return logFor(workout);
 }
 
-// The most recent workout before `date`, with every exercise in the routine.
-// Exercises that workout didn't include come back with no band, note or sets.
-export async function getPreviousSession(date: string): Promise<PreviousSession> {
-  const workouts = await sql<{ id: number; date: string }>(
-    "select id, date::text as date from workout where date < $1 order by date desc limit 1",
+// The most recent log before `date`, or an empty one when there is none.
+export async function getPreviousLog(date: string): Promise<WorkoutLog> {
+  const workouts = await sql<WorkoutRow>(
+    `select ${workoutColumns} from workout where date < $1 order by date desc limit 1`,
     [date],
   );
-  const previousWorkout = workouts[0];
-  const previousWorkoutId = previousWorkout ? previousWorkout.id : null;
+  const workout = workouts[0];
+  if (workout === undefined) {
+    const exercises = await getExerciseLogs(null);
+    return { date: null, bodyWeight: null, exercises };
+  }
+  return logFor(workout);
+}
 
-  const exercises = await sql<PreviousExercise>(
+async function logFor(workout: WorkoutRow): Promise<WorkoutLog> {
+  const exercises = await getExerciseLogs(workout.id);
+  return { date: workout.date, bodyWeight: workout.bodyWeight, exercises };
+}
+
+async function getExerciseLogs(workoutId: number | null): Promise<ExerciseLog[]> {
+  return sql<ExerciseLog>(
     `select
        e.id,
        e.name,
@@ -72,13 +95,9 @@ export async function getPreviousSession(date: string): Promise<PreviousSession>
      from exercise e
      left join workout_exercise we on we.exercise_id = e.id and we.workout_id = $1
      left join exercise_set s on s.workout_exercise_id = we.id
+     where e.retired_at is null
      group by e.id, we.id
      order by e.position`,
-    [previousWorkoutId],
+    [workoutId],
   );
-
-  return {
-    date: previousWorkout ? previousWorkout.date : null,
-    exercises,
-  };
 }

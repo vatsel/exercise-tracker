@@ -1,0 +1,132 @@
+/* Colours from the dataviz reference palette; series slots are in an order checked for colour-blind readers. */
+
+.chart {
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --tooltip-background: #fcfcfb;
+  --tooltip-border: rgba(11, 11, 11, 0.1);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chart {
+    --grid: #2c2c2a;
+    --tooltip-background: #1a1a19;
+    --tooltip-border: rgba(255, 255, 255, 0.1);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.plot {
+  position: relative;
+  width: 100%;
+  touch-action: pan-y;
+}
+
+.plot svg {
+  display: block;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.valueTick,
+.dateTick {
+  fill: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.valueTick {
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.dateTick {
+  text-anchor: middle;
+}
+
+.line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.connector {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 12px));
+  display: flex;
+  flex-direction: column;
+  padding: 6px 8px;
+  border: 1px solid var(--tooltip-border);
+  border-radius: 6px;
+  background: var(--tooltip-background);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.table {
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 2px 12px 2px 0;
+  text-align: left;
+}

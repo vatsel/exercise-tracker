@@ -7,7 +7,9 @@ create table exercise (
   -- How many sets the routine calls for; a workout can record fewer.
   set_count integer not null check (set_count > 0),
   -- Order the exercise appears in a workout.
-  position integer not null unique
+  position integer not null unique,
+  -- Set when the exercise is removed from the routine. New logs leave it out; past logs keep its sets.
+  retired_at timestamptz
 );
 
 -- One row per workout date.
@@ -38,4 +40,12 @@ create table exercise_set (
   -- The rep count is a rough figure (shown as ~9), not an exact one.
   reps_approximate boolean not null default false,
   unique (workout_exercise_id, set_number)
+);
+
+-- People allowed to log in. Emails are stored lowercase.
+create table app_user (
+  id integer generated always as identity primary key,
+  email text not null unique check (email = lower(email)),
+  -- Written by hashPassword in src/lib/password.ts.
+  password_hash text not null
 );

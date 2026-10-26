@@ -1,0 +1,14 @@
+/* Layout shared by every form: single column, sized for phones first. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
