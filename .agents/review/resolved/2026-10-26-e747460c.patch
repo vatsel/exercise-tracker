@@ -1,0 +1,16 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -26,9 +26,13 @@
+   `.env` can't be sourced (unquoted `&`); for ad-hoc psql use `psql "$(sed -n 's/^DB_CONN_STR=//p' .env)"`.
+ - **Dev server:** the user usually keeps `next dev` running, and a second one in this repo exits with
+   "Another next dev server is already running". Use the `appUrl` in `.next/dev/lock` instead.
++- **Request-time values:** `next.config.ts` enables `cacheComponents`, so call `await connection()` before
++  `new Date()` (e.g. `todayDate()`) in a server component; awaiting `searchParams` first doesn't suffice.
+ - **Check UI changes in a browser** at that `appUrl` before reporting them done. Every page except
+   `/login` needs a session, and the automation browsers start logged out. If the browser you can
+   reach lands on `/login`, ask the user to log in there; never report the change as unchecked
+   without asking, and never create users or forge a session cookie to get past it.
++  In Firefox DevTools, `fill_by_uid` scrambles an ISO date in `<input type=date>` (`2099-01-01` became
++  `9010-09-20`), so read `.value` back; `confirm()` auto-cancels, so stub `window.confirm` in `evaluate_script`.
+ - **Scripts:** one-off Node scripts go in `scripts/` as `.mts`, run with `node --no-warnings scripts/<name>.mts`
+   (Node 22 strips types). Import `src/` modules with their `.ts` extension; `tsconfig.json` allows it.

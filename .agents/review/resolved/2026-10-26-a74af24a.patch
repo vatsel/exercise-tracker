@@ -1,0 +1,11 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -26,6 +26,8 @@
+   `.env` can't be sourced (unquoted `&`); for ad-hoc psql use `psql "$(sed -n 's/^DB_CONN_STR=//p' .env)"`.
+ - **Dev server:** the user usually keeps `next dev` running, and a second one in this repo exits with
+   "Another next dev server is already running". Use the `appUrl` in `.next/dev/lock` instead.
++- **Auth:** `src/proxy.ts` redirects every page except `/login`. To curl a page, sign a `session` cookie as
++  `src/lib/session.ts` does (`<userId>.<expiryMs>.<sig>`, HMAC-SHA256 base64url keyed by `SESSION_SECRET` in `.env`).
+ - **Scripts:** one-off Node scripts go in `scripts/` as `.mts`, run with `node --no-warnings scripts/<name>.mts`
+   (Node 22 strips types). Import `src/` modules with their `.ts` extension; `tsconfig.json` allows it.
+ 

@@ -1,0 +1,11 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -23,6 +23,8 @@
+   only when something uses it.
+ - **Database:** Neon Postgres, schema in `db/schema.sql`, connection string in `.env` as `DB_CONN_STR`.
+   Query it only through `src/lib/db.ts` (Neon's HTTP endpoint over `fetch`, no driver).
++- **Dev server:** the user usually keeps `next dev` running, and a second one in this repo exits with
++  "Another next dev server is already running". Use the `appUrl` in `.next/dev/lock` instead.
+ 
+ <!-- BEGIN:nextjs-agent-rules -->
+ 
