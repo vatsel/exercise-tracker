@@ -20,13 +20,15 @@ create table workout (
 );
 
 -- One exercise as done in one workout: the band used and that day's note.
--- A row with no sets means the exercise was planned but skipped.
+-- A row with no sets means the exercise was left blank.
 create table workout_exercise (
   id integer generated always as identity primary key,
   workout_id integer not null references workout (id) on delete cascade,
   exercise_id integer not null references exercise (id),
   band text,
   note text,
+  -- Skipped on purpose: every set is logged as 0 reps, and the next log fills in from an earlier one instead.
+  skipped boolean not null default false,
   unique (workout_id, exercise_id)
 );
 

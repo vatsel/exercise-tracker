@@ -43,8 +43,10 @@ async function LogList() {
 }
 
 function ExerciseSummary({ exercise }: { exercise: ExerciseLog }) {
-  let sets = "skipped";
-  if (exercise.sets.length > 0) {
+  let sets = "not logged";
+  if (exercise.skipped) {
+    sets = "skipped";
+  } else if (exercise.sets.length > 0) {
     sets = exercise.sets.map(formatSet).join(", ");
   }
 

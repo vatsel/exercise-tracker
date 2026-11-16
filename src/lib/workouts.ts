@@ -16,6 +16,8 @@ export type ExerciseLog = {
   setCount: number;
   band: string | null;
   note: string | null;
+  // Skipped on purpose, so every set is 0 reps.
+  skipped: boolean;
   sets: LoggedSet[];
 };
 
@@ -66,26 +68,40 @@ export async function getWorkoutLog(date: string): Promise<WorkoutLog | null> {
   return logFor(workout);
 }
 
-// The most recent log before `date`, or an empty one when there is none.
+// The log to fill a new log for `date` in from. Its date is the most recent workout before `date`, or null when
+// there is none. Each exercise comes from the last workout before `date` that logged it without skipping it,
+// which can be older than that workout.
 export async function getPreviousLog(date: string): Promise<WorkoutLog> {
-  const workouts = await sql<WorkoutRow>(
-    `select ${workoutColumns} from workout where date < $1 order by date desc limit 1`,
-    [date],
-  );
+  const [workouts, exercises] = await Promise.all([
+    sql<WorkoutRow>(`select ${workoutColumns} from workout where date < $1 order by date desc limit 1`, [date]),
+    getExerciseLogs(
+      `select we.*
+       from workout_exercise we
+       join workout w on w.id = we.workout_id
+       where we.exercise_id = e.id and w.date < $1 and not we.skipped
+       order by w.date desc
+       limit 1`,
+      [date],
+    ),
+  ]);
   const workout = workouts[0];
   if (workout === undefined) {
-    const exercises = await getExerciseLogs(null);
     return { date: null, bodyWeight: null, exercises };
   }
-  return logFor(workout);
-}
-
-async function logFor(workout: WorkoutRow): Promise<WorkoutLog> {
-  const exercises = await getExerciseLogs(workout.id);
   return { date: workout.date, bodyWeight: workout.bodyWeight, exercises };
 }
 
-async function getExerciseLogs(workoutId: number | null): Promise<ExerciseLog[]> {
+async function logFor(workout: WorkoutRow): Promise<WorkoutLog> {
+  const exercises = await getExerciseLogs(
+    "select * from workout_exercise where exercise_id = e.id and workout_id = $1",
+    [workout.id],
+  );
+  return { date: workout.date, bodyWeight: workout.bodyWeight, exercises };
+}
+
+// Every exercise in the routine with what `loggedRow` logged for it. `loggedRow` is a query for at most one
+// workout_exercise row of the exercise aliased `e`; an exercise it finds no row for has no band, note or sets.
+async function getExerciseLogs(loggedRow: string, params: unknown[]): Promise<ExerciseLog[]> {
   return sql<ExerciseLog>(
     `select
        e.id,
@@ -94,14 +110,15 @@ async function getExerciseLogs(workoutId: number | null): Promise<ExerciseLog[]>
        e.set_count as "setCount",
        we.band,
        we.note,
+       coalesce(we.skipped, false) as skipped,
        ${setsColumn}
      from exercise e
-     left join workout_exercise we on we.exercise_id = e.id and we.workout_id = $1
+     left join lateral (${loggedRow}) we on true
      left join exercise_set s on s.workout_exercise_id = we.id
      where e.retired_at is null
-     group by e.id, we.id
+     group by e.id, we.id, we.band, we.note, we.skipped
      order by e.position`,
-    [workoutId],
+    params,
   );
 }
 
@@ -127,6 +144,7 @@ export async function getAllLogs(): Promise<WorkoutLog[]> {
            'setCount', e.set_count,
            'band', we.band,
            'note', we.note,
+           'skipped', we.skipped,
            'sets', sets
          ) as exercise
        from workout_exercise we

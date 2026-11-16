@@ -12,6 +12,11 @@ export function noteField(exerciseId: number): string {
   return `note-${exerciseId}`;
 }
 
+// Present only when the exercise is skipped.
+export function skippedField(exerciseId: number): string {
+  return `skipped-${exerciseId}`;
+}
+
 export function repsField(exerciseId: number, setNumber: number): string {
   return `reps-${exerciseId}-${setNumber}`;
 }

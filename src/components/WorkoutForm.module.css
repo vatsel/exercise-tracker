@@ -2,6 +2,12 @@
   width: 9em;
 }
 
+/* A skipped exercise's skip button stays inverted, so pressing it again reads as undoing the skip. */
+.skipButton[aria-pressed="true"] svg {
+  background: var(--color-field);
+  color: var(--color-text-strong);
+}
+
 .sets {
   display: flex;
   flex-direction: column;

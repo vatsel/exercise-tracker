@@ -16,6 +16,7 @@ import {
   noteField,
   otherSideRepsField,
   repsField,
+  skippedField,
 } from "@/lib/workoutFields";
 
 // What a form action reports back for the form to show.
@@ -61,6 +62,7 @@ const workoutSchema = z.object({
       id: z.number(),
       band: optionalText,
       note: optionalText,
+      skipped: z.boolean(),
       sets: z.array(
         z.object({
           setNumber: z.number(),
@@ -72,9 +74,28 @@ const workoutSchema = z.object({
   ),
 });
 
+type RoutineExercise = { id: number; perSide: boolean; setCount: number };
+
+// A skipped exercise logs 0 reps for every set the routine calls for, on both sides of a per-side one.
+function skippedSets(exercise: RoutineExercise) {
+  let otherSideReps = null;
+  if (exercise.perSide) {
+    otherSideReps = 0;
+  }
+  const setNumbers = Array.from({ length: exercise.setCount }, (_, index) => index + 1);
+  return setNumbers.map((setNumber) => ({ setNumber, reps: 0, otherSideReps }));
+}
+
 // Gathers the workout form's fields into the shape workoutSchema checks; nothing is validated yet.
-function readWorkoutForm(formData: FormData, exerciseIds: number[]) {
-  const exercises = exerciseIds.map((exerciseId) => {
+function readWorkoutForm(formData: FormData, routine: RoutineExercise[]) {
+  const exercises = routine.map((exercise) => {
+    const exerciseId = exercise.id;
+    const note = textOrNull(formData, noteField(exerciseId));
+    // A skipped exercise's band and sets fields are hidden, so none are read.
+    if (formData.has(skippedField(exerciseId))) {
+      return { id: exerciseId, band: null, note, skipped: true, sets: skippedSets(exercise) };
+    }
+
     // A set left without reps was skipped, so it is not stored.
     const sets = [];
     let setNumber = 1;
@@ -92,7 +113,8 @@ function readWorkoutForm(formData: FormData, exerciseIds: number[]) {
     return {
       id: exerciseId,
       band: textOrNull(formData, bandField(exerciseId)),
-      note: textOrNull(formData, noteField(exerciseId)),
+      note,
+      skipped: false,
       sets,
     };
   });
@@ -108,11 +130,13 @@ function readWorkoutForm(formData: FormData, exerciseIds: number[]) {
 // The form calls this after every edit, so each save carries the whole form.
 // Only exercises still in the routine are replaced; sets logged for retired ones are kept.
 export async function saveWorkout(_previousState: SaveState, formData: FormData): Promise<SaveState> {
-  const exerciseRows = await sql<{ id: number }>(
-    "select id from exercise where retired_at is null order by position",
+  const routine = await sql<RoutineExercise>(
+    `select id, per_side as "perSide", set_count as "setCount"
+     from exercise
+     where retired_at is null
+     order by position`,
   );
-  const exerciseIds = exerciseRows.map((exercise) => exercise.id);
-  const parsed = workoutSchema.safeParse(readWorkoutForm(formData, exerciseIds));
+  const parsed = workoutSchema.safeParse(readWorkoutForm(formData, routine));
   if (!parsed.success) {
     const firstIssue = parsed.error.issues[0];
     return { message: `Not saved: ${firstIssue.message}`, saved: false };
@@ -135,9 +159,9 @@ export async function saveWorkout(_previousState: SaveState, formData: FormData)
 
   for (const exercise of workout.exercises) {
     queries.push({
-      query: `insert into workout_exercise (workout_id, exercise_id, band, note)
-              select id, $2, $3, $4 from workout where date = $1`,
-      params: [workout.date, exercise.id, exercise.band, exercise.note],
+      query: `insert into workout_exercise (workout_id, exercise_id, band, note, skipped)
+              select id, $2, $3, $4, $5 from workout where date = $1`,
+      params: [workout.date, exercise.id, exercise.band, exercise.note, exercise.skipped],
     });
 
     // New sets are never marked approximate; reps_approximate only keeps what older logs recorded.

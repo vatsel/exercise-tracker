@@ -13,7 +13,13 @@ import {
 import { useRouter } from "next/navigation";
 import { retireExercise, saveWorkout, type SaveState } from "@/app/actions";
 import { AddExerciseForm } from "@/components/AddExerciseForm";
-import { CircleCheckIcon, CirclePlusIcon, CircleXIcon, CopyIcon } from "@/components/Icons";
+import {
+  CircleArrowRightIcon,
+  CircleCheckIcon,
+  CirclePlusIcon,
+  CircleXIcon,
+  CopyIcon,
+} from "@/components/Icons";
 import type { ExerciseLog, LoggedSet, WorkoutLog } from "@/lib/workouts";
 import {
   bandField,
@@ -22,6 +28,7 @@ import {
   noteField,
   otherSideRepsField,
   repsField,
+  skippedField,
 } from "@/lib/workoutFields";
 import formStyles from "./Form.module.css";
 import pageStyles from "./Page.module.css";
@@ -164,16 +171,25 @@ function WorkoutLogForm({ date, savedLog, previous, onNewWorkout }: WorkoutLogFo
         {savedLog !== null && <p className={formStyles.status}>Editing the log already saved for this date.</p>}
 
         <h2>Sets</h2>
-        {startingLog.exercises.map((exercise, index) => (
-          <ExerciseFields
-            key={exercise.id}
-            exercise={exercise}
-            // A new log starts with empty notes and offers last time's to copy instead.
-            startingNote={savedLog === null ? "" : (exercise.note ?? "")}
-            previousNote={previous.exercises[index].note}
-            onNoteCopied={scheduleSave}
-          />
-        ))}
+        {startingLog.exercises.map((exercise, index) => {
+          const previousExercise = previous.exercises[index];
+          // A skipped exercise's zeros are no starting point, so undoing the skip offers the last real log instead.
+          let fieldsFrom = exercise;
+          if (exercise.skipped) {
+            fieldsFrom = previousExercise;
+          }
+          return (
+            <ExerciseFields
+              key={exercise.id}
+              exercise={fieldsFrom}
+              startsSkipped={exercise.skipped}
+              // A new log starts with empty notes and offers last time's to copy instead.
+              startingNote={savedLog === null ? "" : (exercise.note ?? "")}
+              previousNote={previousExercise.note}
+              onChangedByCode={scheduleSave}
+            />
+          );
+        })}
       </form>
 
       <AddExerciseForm />
@@ -199,13 +215,27 @@ function WorkoutLogForm({ date, savedLog, previous, onNewWorkout }: WorkoutLogFo
 
 type ExerciseFieldsProps = {
   exercise: ExerciseLog;
+  startsSkipped: boolean;
   startingNote: string;
   previousNote: string | null;
-  onNoteCopied: () => void;
+  // Fields changed from code fire no change event, so they ask for a save through this.
+  onChangedByCode: () => void;
 };
 
-function ExerciseFields({ exercise, startingNote, previousNote, onNoteCopied }: ExerciseFieldsProps) {
+function ExerciseFields({
+  exercise,
+  startsSkipped,
+  startingNote,
+  previousNote,
+  onChangedByCode,
+}: ExerciseFieldsProps) {
   const headingId = useId();
+  const [skipped, setSkipped] = useState(startsSkipped);
+
+  function toggleSkipped() {
+    setSkipped(!skipped);
+    onChangedByCode();
+  }
 
   // Show the routine's sets, or more if the last session logged extra.
   const rowCount = Math.max(exercise.setCount, exercise.sets.length);
@@ -219,34 +249,50 @@ function ExerciseFields({ exercise, startingNote, previousNote, onNoteCopied }: 
 
   return (
     <fieldset className={formStyles.card} aria-labelledby={headingId}>
-      <ExerciseHeader exerciseId={exercise.id} exerciseName={exercise.name} headingId={headingId} />
+      <ExerciseHeader
+        exerciseId={exercise.id}
+        exerciseName={exercise.name}
+        headingId={headingId}
+        skipped={skipped}
+        onSkipToggled={toggleSkipped}
+      />
 
-      <label className={formStyles.field}>
-        Band
-        <input type="text" name={bandField(exercise.id)} defaultValue={exercise.band ?? ""} />
-      </label>
+      {/* The save logs a skipped exercise's sets as 0 reps itself, so its band and sets aren't shown. */}
+      {skipped ? (
+        <>
+          <input type="hidden" name={skippedField(exercise.id)} value="on" />
+          <p className={formStyles.status}>Skipped: every set is logged as 0 reps.</p>
+        </>
+      ) : (
+        <>
+          <label className={formStyles.field}>
+            Band
+            <input type="text" name={bandField(exercise.id)} defaultValue={exercise.band ?? ""} />
+          </label>
 
-      <div className={styles.sets}>
-        {setRows.map((setRow) => (
-          <div key={setRow[0]} className={styles.setRow}>
-            {setRow.map((setNumber) => (
-              <SetFields
-                key={setNumber}
-                exerciseId={exercise.id}
-                perSide={exercise.perSide}
-                setNumber={setNumber}
-                previousSet={exercise.sets[setNumber - 1]}
-              />
+          <div className={styles.sets}>
+            {setRows.map((setRow) => (
+              <div key={setRow[0]} className={styles.setRow}>
+                {setRow.map((setNumber) => (
+                  <SetFields
+                    key={setNumber}
+                    exerciseId={exercise.id}
+                    perSide={exercise.perSide}
+                    setNumber={setNumber}
+                    previousSet={exercise.sets[setNumber - 1]}
+                  />
+                ))}
+              </div>
             ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       <NoteField
         exerciseId={exercise.id}
         startingNote={startingNote}
         previousNote={previousNote}
-        onNoteCopied={onNoteCopied}
+        onNoteCopied={onChangedByCode}
       />
     </fieldset>
   );
@@ -256,10 +302,13 @@ type ExerciseHeaderProps = {
   exerciseId: number;
   exerciseName: string;
   headingId: string;
+  skipped: boolean;
+  onSkipToggled: () => void;
 };
 
-// The exercise's name and a delete button, which asks for a confirmation in the header itself.
-function ExerciseHeader({ exerciseId, exerciseName, headingId }: ExerciseHeaderProps) {
+// The exercise's name, a button that skips it for this workout, and a delete button, which asks for a
+// confirmation in the header itself.
+function ExerciseHeader({ exerciseId, exerciseName, headingId, skipped, onSkipToggled }: ExerciseHeaderProps) {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -273,9 +322,20 @@ function ExerciseHeader({ exerciseId, exerciseName, headingId }: ExerciseHeaderP
     return (
       <div className={formStyles.cardHeader}>
         <h3 id={headingId}>{exerciseName}</h3>
-        <button type="button" onClick={() => setConfirming(true)} aria-label={`Delete ${exerciseName}`}>
-          <CircleXIcon className={formStyles.disc} />
-        </button>
+        <div className={formStyles.discButtons}>
+          <button
+            type="button"
+            className={styles.skipButton}
+            onClick={onSkipToggled}
+            aria-pressed={skipped}
+            aria-label={`Skip ${exerciseName}`}
+          >
+            <CircleArrowRightIcon className={formStyles.disc} />
+          </button>
+          <button type="button" onClick={() => setConfirming(true)} aria-label={`Delete ${exerciseName}`}>
+            <CircleXIcon className={formStyles.disc} />
+          </button>
+        </div>
       </div>
     );
   }
