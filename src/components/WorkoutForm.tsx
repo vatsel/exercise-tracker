@@ -261,7 +261,7 @@ function ExerciseFields({
       {skipped ? (
         <>
           <input type="hidden" name={skippedField(exercise.id)} value="on" />
-          <p className={formStyles.status}>Skipped: every set is logged as 0 reps.</p>
+          <p className={formStyles.status}>Skipped</p>
         </>
       ) : (
         <>
