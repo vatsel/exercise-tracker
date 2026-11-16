@@ -86,14 +86,31 @@
   width: var(--icon-disc);
   height: var(--icon-disc);
   border-radius: var(--radius-round);
-  background: var(--color-text);
-  color: var(--color-background);
+  /* The disc's fill and its icon's colour, kept as variables so a variant can swap them. */
+  --disc-fill: var(--color-text);
+  --disc-ink: var(--color-background);
+  background: var(--disc-fill);
+  color: var(--disc-ink);
   stroke-width: 1;
 }
 
 .accent .disc {
-  background: var(--color-surface);
-  color: var(--color-accent);
+  --disc-fill: var(--color-surface);
+  --disc-ink: var(--color-accent);
+}
+
+/* A button whose disc swaps its fill and icon colours on hover. Touch screens have no hover to show. */
+.discButton svg {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out;
+}
+
+@media (hover: hover) {
+  .discButton:hover svg {
+    background: var(--disc-ink);
+    color: var(--disc-fill);
+  }
 }
 
 .status {

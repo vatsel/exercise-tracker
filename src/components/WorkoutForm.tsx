@@ -14,9 +14,9 @@ import { useRouter } from "next/navigation";
 import { retireExercise, saveWorkout, type SaveState } from "@/app/actions";
 import { AddExerciseForm } from "@/components/AddExerciseForm";
 import {
-  CircleArrowRightIcon,
   CircleCheckIcon,
   CirclePlusIcon,
+  CircleSkipForwardIcon,
   CircleXIcon,
   CopyIcon,
 } from "@/components/Icons";
@@ -325,14 +325,19 @@ function ExerciseHeader({ exerciseId, exerciseName, headingId, skipped, onSkipTo
         <div className={formStyles.discButtons}>
           <button
             type="button"
-            className={styles.skipButton}
+            className={`${formStyles.discButton} ${styles.skipButton}`}
             onClick={onSkipToggled}
             aria-pressed={skipped}
             aria-label={`Skip ${exerciseName}`}
           >
-            <CircleArrowRightIcon className={formStyles.disc} />
+            <CircleSkipForwardIcon className={formStyles.disc} />
           </button>
-          <button type="button" onClick={() => setConfirming(true)} aria-label={`Delete ${exerciseName}`}>
+          <button
+            type="button"
+            className={formStyles.discButton}
+            onClick={() => setConfirming(true)}
+            aria-label={`Delete ${exerciseName}`}
+          >
             <CircleXIcon className={formStyles.disc} />
           </button>
         </div>

@@ -62,12 +62,14 @@ export function CircleCheckIcon(props: IconProps) {
   );
 }
 
-export function CircleArrowRightIcon(props: IconProps) {
+// Lucide has no circled skip-forward, so this is its skip-forward scaled to 0.4 about the centre to sit inside
+// circle-x's circle. The coordinates are scaled rather than transformed so the stroke keeps its width.
+export function CircleSkipForwardIcon(props: IconProps) {
   return (
     <Icon {...props}>
       <circle cx="12" cy="12" r="10" />
-      <path d="m12 16 4-4-4-4" />
-      <path d="M8 12h8" />
+      <path d="M15.6 8.8v6.4" />
+      <path d="M9.612 8.914A0.8 0.8 0 0 0 8.4 9.6v4.8a0.8 0.8 0 0 0 1.212 0.686l3.999-2.399a0.8 0.8 0 0 0 .001-1.373z" />
     </Icon>
   );
 }
