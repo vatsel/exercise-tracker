@@ -30,6 +30,8 @@ Several agent types work in this repo, so shared agent material lives in `.agent
   "Another next dev server is already running". Use the `appUrl` in `.next/dev/lock` instead.
 - **Deploy:** pushing `main` deploys production through Vercel's git integration (project `exercise-tracker`,
   `prj_Z0tcb2sxtmW8K8pY6NKYVRsyVXCj`, team `team_qoOiTWNNItywejUoC28BZNDx`), served at https://exercise.vatsel.com.
+- **GitHub:** `gh` isn't installed. The repo is public, so query PRs and branches unauthenticated with
+  `curl -s 'https://api.github.com/repos/vatsel/exercise-tracker/pulls'` (quote the URL: zsh globs `?`).
 - **Request-time values:** `next.config.ts` enables `cacheComponents`, so call `await connection()` before
   `new Date()` (e.g. `todayDate()`) in a server component; awaiting `searchParams` first doesn't suffice.
 - **Check UI changes in a browser** at that `appUrl` before reporting them done. Every page except
