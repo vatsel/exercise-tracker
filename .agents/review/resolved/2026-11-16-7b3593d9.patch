@@ -1,0 +1,11 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -46,6 +46,8 @@
+   session scratchpad are refused, so save it in the repo and `mv` it out.
+ - **Scripts:** one-off Node scripts go in `scripts/` as `.mts`, run with `node --no-warnings scripts/<name>.mts`
+   (Node 22 strips types). Import `src/` modules with their `.ts` extension; `tsconfig.json` allows it.
++- **Formatting:** there is no Prettier; `npx prettier --write` downloads it and reflows whole files to 80 columns
++  (source lines run to ~120). Format by hand to match the file, then run `pnpm lint` and `npx tsc --noEmit`.
+ 
+ <!-- BEGIN:nextjs-agent-rules -->
+ 

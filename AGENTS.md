@@ -24,7 +24,8 @@ Several agent types work in this repo, so shared agent material lives in `.agent
   only when something uses it.
 - **Database:** Neon Postgres, schema in `db/schema.sql`, connection string in `.env` as `DB_CONN_STR`.
   App code queries it only through `src/lib/db.ts` (Neon's HTTP endpoint over `fetch`, no driver).
-  `.env` can't be sourced (unquoted `&`); for ad-hoc psql use `psql "$(sed -n 's/^DB_CONN_STR=//p' .env)"`.
+  `.env` can't be sourced (unquoted `&`). psql isn't on PATH (keg-only libpq); for ad-hoc SQL use
+  `/opt/homebrew/opt/libpq/bin/psql "$(sed -n 's/^DB_CONN_STR=//p' .env)"`.
 - **Dev server:** the user usually keeps `next dev` running, and a second one in this repo exits with
   "Another next dev server is already running". Use the `appUrl` in `.next/dev/lock` instead.
 - **Deploy:** pushing `main` deploys production through Vercel's git integration (project `exercise-tracker`,
@@ -41,10 +42,12 @@ Several agent types work in this repo, so shared agent material lives in `.agent
   after filling; `confirm()` auto-cancels before `accept_dialog`, so stub `window.confirm` via `evaluate_script`.
   Chrome's `resize_page` won't go below 500px wide; for a phone width use `emulate` with
   `viewport: "375x812x2,mobile,touch"`.
-  Chrome's `take_screenshot` writes a `filePath` only inside the repo; `/tmp` and the session scratchpad
-  are refused, so save it in the repo and `mv` it out.
+  Chrome's `take_screenshot` and `take_snapshot` write a `filePath` only inside the repo; `/tmp` and the
+  session scratchpad are refused, so save it in the repo and `mv` it out.
 - **Scripts:** one-off Node scripts go in `scripts/` as `.mts`, run with `node --no-warnings scripts/<name>.mts`
   (Node 22 strips types). Import `src/` modules with their `.ts` extension; `tsconfig.json` allows it.
+- **Formatting:** there is no Prettier; `npx prettier --write` downloads it and reflows whole files to 80 columns
+  (source lines run to ~120). Format by hand to match the file, then run `pnpm lint` and `npx tsc --noEmit`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
